@@ -43,7 +43,7 @@ $ConfigData = @{
 	)
 }
 configuration MemberServer {
-	Import-DscResource -Module xComputerManagement
+	Import-DscResource -Module xComputerManagement, xActiveDirectory
 	node $AllNodes.NodeName {
 		LocalConfigurationManager
 		{
@@ -52,11 +52,24 @@ configuration MemberServer {
 			RefreshFrequencyMins = 30
 			RebootNodeIfNeeded = $true
 		}
+
+        WindowsFeature RSAT-AD {
+            Ensure = 'Present'
+            Name = "RSAT-AD-PowerShell"
+        }
+
+        xWaitForADDomain WaitDomain {
+            DomainName = $AllNodes.DomainName
+            DomainUserCredential = $AllNodes.Credential
+            RetryIntervalSec = 5
+            RetryCount = 10
+        }
 			
 		xComputer RenamePC {
 			Name = $AllNodes.Name
             DomainName = $AllNodes.DomainName
             Credential = $AllNodes.Credential
+            DependsOn = "[xWaitForADDomain]WaitDomain"
 		}
 	}
 }
